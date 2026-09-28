@@ -2,8 +2,8 @@
 <html lang="zh-TW">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>GCP Layer 7 全域負載平衡器架構圖</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>GCP Layer 7 全域 HTTP 負載平衡器架構圖</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script>
     tailwind.config = {
@@ -22,515 +22,350 @@
       }
     }
   </script>
-  <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Fira+Code:wght@400;500&family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
-
   <style>
-    body {
-      font-family: 'Inter', 'Noto Sans TC', system-ui, sans-serif;
+    .bg-grid-pattern {
+      background-color: #f1f5f9;
+      background-image: radial-gradient(#cbd5e1 1.2px, transparent 1.2px);
+      background-size: 20px 20px;
     }
-    code, pre {
-      font-family: 'Fira Code', monospace;
-    }
-    .g-card {
-      transition: all 0.18s cubic-bezier(0.4, 0, 0.2, 1);
-      cursor: pointer;
-    }
-    .g-card:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 6px 16px -2px rgba(137, 180, 250, 0.3);
-      border-color: #89b4fa;
-    }
-    .vm-card {
-      transition: all 0.18s ease;
-      cursor: pointer;
-    }
-    .vm-card:hover {
-      transform: scale(1.02);
-      border-color: #89b4fa;
-      background-color: #f0f5ff;
-    }
-    .arrow-line {
-      width: 2px;
-      background-color: #c6daf8;
-      position: relative;
-    }
-    .arrow-line::after {
-      content: '';
-      position: absolute;
-      bottom: -1px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 4.5px solid transparent;
-      border-right: 4.5px solid transparent;
-      border-top: 6px solid #89b4fa;
-    }
-    .vm-card {
-      transition: all 0.18s ease;
-      cursor: pointer;
-    }
-    .vm-card:hover {
-      transform: scale(1.02);
-      border-color: #4285F4;
-      background-color: #F1F6FD;
-    }
-    .arrow-line {
-      width: 2px;
-      background-color: #AECBFA;
-      position: relative;
-    }
-    .arrow-line::after {
-      content: '';
-      position: absolute;
-      bottom: -1px;
-      left: 50%;
-      transform: translateX(-50%);
-      width: 0;
-      height: 0;
-      border-left: 4.5px solid transparent;
-      border-right: 4.5px solid transparent;
-      border-top: 6px solid #4285F4;
-    }
-    @keyframes fadeIn {
-      from { opacity: 0; transform: scale(0.98); }
-      to { opacity: 1; transform: scale(1); }
-    }
-    .modal-show {
-      animation: fadeIn 0.15s ease-out forwards;
+    pre, code {
+      word-break: break-all;
+      white-space: pre-wrap;
     }
   </style>
 </head>
+<body class="bg-grid-pattern min-h-screen text-slate-800 font-sans antialiased p-3 sm:p-6 lg:p-10 flex flex-col items-center justify-start">
 
-<body class="bg-google-surface text-slate-800 min-h-screen flex flex-col antialiased">
+  <!-- 架構圖主畫布容器 -->
+  <div class="w-full max-w-4xl bg-white/95 backdrop-blur-sm rounded-2xl border-2 border-dashed border-blue-300 p-4 sm:p-8 shadow-xl flex flex-col items-center transition-all">
 
-  <header class="bg-white border-b border-slate-200/80 px-6 py-3.5 sticky top-0 z-30 shadow-[0_1px_3px_rgba(0,0,0,0.04)]">
-    <div class="max-w-5xl mx-auto flex items-center justify-between">
-      <div class="flex items-center space-x-3">
-        <div class="w-8 h-8 rounded-lg bg-google-blueLight text-google-blue border border-google-blueBorder flex items-center justify-center font-bold text-sm shadow-sm">
-          <svg class="w-4 h-4 text-google-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M6 7l3 9M6 7l6-2m6 2l3-1m-3 1l-3 9a5.002 5.002 0 006.001 0M18 7l3 9m-3-9l-6-2m0-2v2m0 16V5m0 16H9m3 0h3"></path></svg>
-        </div>
-        <div>
-          <h1 class="text-base font-bold text-slate-900 leading-tight">GCP Layer 7 全域 HTTP 負載平衡器架構</h1>
-          <p class="text-xs text-slate-500">點擊任意節點或 VM 查看執行說明、指令與原理</p>
-        </div>
-      </div>
-      <div class="flex items-center space-x-2">
-        <span class="text-xs font-semibold text-slate-800 bg-[#89b4fa]/20 border border-[#89b4fa] px-3 py-1 rounded-full flex items-center gap-1.5">
-          <svg class="w-3.5 h-3.5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
-          <span>Cloud Shell 部署指南</span>
-        </span>
-      </div>
-    </div>
-  </header>
-
-  <main class="max-w-3xl mx-auto w-full px-4 py-8 flex-1 flex flex-col items-center">
-
-    <div class="w-full bg-[#F1F6FD] border border-google-blueBorder rounded-2xl p-6 sm:p-8 flex flex-col items-center shadow-sm relative">
-
-      <!-- 框內最上方置中標題 -->
-      <div class="mb-6 text-center">
-        <h2 class="text-base sm:text-lg font-bold text-slate-900 tracking-tight">
-          GCP Layer 7 全域 HTTP 負載平衡器架構
-        </h2>
-        <div class="h-0.5 w-14 bg-[#89b4fa] mx-auto mt-1.5 rounded-full"></div>
-      </div>
-
-      <!-- 外部客戶端 (Client) -->
-      <div onclick="openNode('client')" class="g-card bg-white border border-slate-200 rounded-xl px-4 py-2.5 shadow-sm flex items-center justify-between w-72">
-        <div class="flex items-center space-x-2.5">
-          <div class="w-6 h-6 rounded-md bg-google-blueLight border border-google-blueBorder flex items-center justify-center">
-            <svg class="w-3.5 h-3.5 text-google-blue" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>
-          </div>
-          <span class="text-xs font-semibold text-slate-800">外部客戶端 (Client)</span>
-        </div>
-        <span class="text-[11px] font-mono text-slate-500 bg-slate-100 px-1.5 py-0.5 rounded">Anycast IP:80</span>
-      </div>
-
-      <div class="h-6 arrow-line my-0.5"></div>
-
-      <!-- 節點 1: 全域轉送規則 & 外部靜態 IP (步驟 4 & 步驟 10) -->
-      <div onclick="openNode('forwarding_rule')" class="w-full max-w-xl g-card bg-white border border-google-blueBorder rounded-xl p-3 shadow-sm flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-7 h-7 rounded-lg bg-google-blueLight border border-google-blueBorder flex items-center justify-center text-slate-700">
-            <svg class="w-4 h-4 text-[#89b4fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
-          </div>
-          <div>
-            <div class="flex items-center gap-1.5 whitespace-nowrap">
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#89b4fa] text-white">Step 4 & 10</span>
-              <span class="text-xs font-bold text-slate-900">全域轉送規則與靜態 IP (Forwarding Rule)</span>
-            </div>
-            <div class="text-[11px] font-mono text-slate-500 mt-0.5">http-content-rule ➔ IP: lb-ipv4-1 (Port 80)</div>
-          </div>
-        </div>
-        <span class="text-xs text-slate-400">›</span>
-      </div>
-
-      <div class="h-6 arrow-line my-0.5"></div>
-
-      <!-- 節點 2: Target HTTP Proxy (步驟 9) -->
-      <div onclick="openNode('target_proxy')" class="w-full max-w-xl g-card bg-white border border-google-blueBorder rounded-xl p-3 shadow-sm flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-7 h-7 rounded-lg bg-google-blueLight border border-google-blueBorder flex items-center justify-center text-slate-700">
-            <svg class="w-4 h-4 text-[#89b4fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
-          </div>
-          <div>
-            <div class="flex items-center gap-1.5 whitespace-nowrap">
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#89b4fa] text-white">Step 9</span>
-              <span class="text-xs font-bold text-slate-900">目標 HTTP 代理 (Target HTTP Proxy)</span>
-            </div>
-            <div class="text-[11px] font-mono text-slate-500 mt-0.5">http-lb-proxy (終止連線並解析 HTTP 請求)</div>
-          </div>
-        </div>
-        <span class="text-xs text-slate-400">›</span>
-      </div>
-
-      <div class="h-6 arrow-line my-0.5"></div>
-
-      <!-- 節點 3: URL Map (步驟 8) -->
-      <div onclick="openNode('url_map')" class="w-full max-w-xl g-card bg-white border border-google-blueBorder rounded-xl p-3 shadow-sm flex items-center justify-between">
-        <div class="flex items-center space-x-3">
-          <div class="w-7 h-7 rounded-lg bg-google-blueLight border border-google-blueBorder flex items-center justify-center text-slate-700">
-            <svg class="w-4 h-4 text-[#89b4fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
-          </div>
-          <div>
-            <div class="flex items-center gap-1.5 whitespace-nowrap">
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#89b4fa] text-white">Step 8</span>
-              <span class="text-xs font-bold text-slate-900">網址對應表 (URL Map - 第 7 層路由核心)</span>
-            </div>
-            <div class="text-[11px] font-mono text-slate-500 mt-0.5">web-map-http ➔ default: web-backend-service</div>
-          </div>
-        </div>
-        <span class="text-xs text-slate-400">›</span>
-      </div>
-
-      <div class="h-6 arrow-line my-0.5"></div>
-
-      <!-- 節點 4: Backend Service & Health Check 橫向區域 -->
-      <div class="w-full max-w-xl grid grid-cols-12 gap-3.5 items-stretch">
-        <!-- 後端服務 (步驟 6 & 7) -->
-        <div onclick="openNode('backend_service')" class="col-span-7 g-card bg-white border border-google-blueBorder rounded-xl p-3 shadow-sm flex items-center justify-between">
-          <div class="flex items-center space-x-2.5">
-            <div class="w-7 h-7 rounded-lg bg-google-blueLight border border-google-blueBorder flex items-center justify-center text-slate-700">
-              <svg class="w-4 h-4 text-[#89b4fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>
-            </div>
-            <div>
-              <div class="flex items-center gap-1.5 whitespace-nowrap">
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-[#89b4fa] text-white whitespace-nowrap">Step 6 & 7</span>
-                <span class="text-xs font-bold text-slate-900 whitespace-nowrap">後端服務 (Backend Service)</span>
-              </div>
-              <div class="text-[11px] font-mono text-slate-500 mt-0.5">web-backend-service</div>
-            </div>
-          </div>
-          <span class="text-xs text-slate-400">›</span>
-        </div>
-
-        <!-- 健康檢查 (步驟 5) - 綠色主題，單行不折行 -->
-        <div onclick="openNode('health_check')" class="col-span-5 g-card bg-emerald-50/70 border border-emerald-200 hover:border-emerald-500 rounded-xl p-3 shadow-sm flex flex-col justify-center">
-          <div class="flex items-center justify-between whitespace-nowrap mb-1">
-            <div class="flex items-center space-x-1.5">
-              <div class="w-6 h-6 rounded-md bg-emerald-100 border border-emerald-200 flex items-center justify-center text-emerald-600">
-                <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-              </div>
-              <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-600 text-white whitespace-nowrap">Step 5</span>
-              <span class="text-xs font-bold text-emerald-950 whitespace-nowrap">健康檢查</span>
-            </div>
-            <span class="text-xs text-emerald-600">›</span>
-          </div>
-          <div class="text-[11px] font-mono text-emerald-700 font-medium pl-0.5 truncate">http-basic-check (Port 80)</div>
-        </div>
-      </div>
-
-      <div class="h-6 arrow-line my-0.5"></div>
-
-      <!-- 節點 5: 後端區域 (Zone: us-east1-c) -->
-      <div class="w-full max-w-xl bg-white border border-slate-200 rounded-2xl p-4 sm:p-5 shadow-sm">
-        <div class="text-[11px] font-semibold text-slate-500 mb-3 flex items-center justify-between border-b border-slate-100 pb-2">
-          <span class="flex items-center gap-1.5">
-            <span class="w-2 h-2 rounded-full bg-emerald-500"></span>
-            後端運算區域 (Zone: us-east1-c)
-          </span>
-          <span class="font-mono text-slate-400 text-[10px]">Machine: e2-medium</span>
-        </div>
-
-        <div class="grid grid-cols-1 sm:grid-cols-12 gap-3.5">
-          <!-- MIG 包含 2 個可獨立點擊的 VM - 灰色主題 (步驟 2 & 步驟 1) -->
-          <div class="sm:col-span-7 bg-slate-100/90 border border-slate-300 hover:border-slate-400 rounded-xl p-3 flex flex-col justify-between transition shadow-2xs">
-            <div onclick="openNode('mig')" class="g-card flex items-center justify-between mb-2.5 pb-2 border-b border-slate-200">
-              <div class="flex items-center space-x-2 whitespace-nowrap">
-                <div class="w-6 h-6 rounded-md bg-slate-200 border border-slate-300 flex items-center justify-center text-slate-700">
-                  <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
-                </div>
-                <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-slate-700 text-white whitespace-nowrap">Step 2</span>
-                <span class="text-xs font-bold text-slate-800 whitespace-nowrap">受管群組 (MIG)</span>
-              </div>
-              <span class="text-[10px] font-mono text-slate-500 whitespace-nowrap">2 VMs ›</span>
-            </div>
-
-            <!-- 兩台具備獨立說明的 VM 卡片 -->
-            <div class="grid grid-cols-2 gap-2 mb-2.5">
-              <div onclick="openNode('vm1')" class="vm-card bg-white border border-slate-200 rounded-lg p-2 text-center shadow-xs">
-                <div class="flex items-center justify-center gap-1.5">
-                  <div class="w-4 h-4 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
-                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                  </div>
-                  <span class="font-bold text-slate-800 text-xs">VM 1</span>
-                </div>
-                <span class="text-[10px] text-[#6292e0] block font-mono mt-0.5">Port 80 • 點擊</span>
-              </div>
-
-              <div onclick="openNode('vm2')" class="vm-card bg-white border border-slate-200 rounded-lg p-2 text-center shadow-xs">
-                <div class="flex items-center justify-center gap-1.5">
-                  <div class="w-4 h-4 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
-                    <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
-                  </div>
-                  <span class="font-bold text-slate-800 text-xs">VM 2</span>
-                </div>
-                <span class="text-[10px] text-[#6292e0] block font-mono mt-0.5">Port 80 • 點擊</span>
-              </div>
-            </div>
-
-            <!-- 範本 (步驟 1) -->
-            <div onclick="openNode('template')" class="g-card bg-white border border-slate-200 rounded-lg px-2.5 py-1.5 flex items-center justify-between text-xs">
-              <div class="flex items-center space-x-1.5 whitespace-nowrap">
-                <div class="w-4 h-4 rounded bg-slate-100 border border-slate-200 flex items-center justify-center text-slate-600">
-                  <svg class="w-2.5 h-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                </div>
-                <span class="px-1.5 py-0.5 rounded text-[9px] font-bold bg-slate-600 text-white">Step 1</span>
-                <span class="text-slate-600">範本: <code class="font-mono text-slate-800">lb-backend-template</code></span>
-              </div>
-              <span class="text-slate-400 text-xs">›</span>
-            </div>
-          </div>
-
-          <!-- 健康檢查防火牆 - 紅色主題 (步驟 3) -->
-          <div onclick="openNode('firewall')" class="sm:col-span-5 g-card bg-rose-50/70 border border-rose-200 hover:border-rose-400 rounded-xl p-3 flex flex-col justify-between">
-            <div>
-              <div class="flex items-center justify-between whitespace-nowrap mb-1">
-                <div class="flex items-center space-x-1.5">
-                  <div class="w-6 h-6 rounded-md bg-rose-100 border border-rose-200 flex items-center justify-center text-rose-600">
-                    <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>
-                  </div>
-                  <span class="px-1.5 py-0.5 rounded text-[10px] font-bold bg-rose-600 text-white whitespace-nowrap">Step 3</span>
-                  <span class="text-xs font-bold text-rose-950 whitespace-nowrap">探針防火牆</span>
-                </div>
-                <span class="text-xs text-rose-400">›</span>
-              </div>
-              <p class="text-[11px] text-rose-700 font-mono font-medium mt-1 truncate">fw-allow-health-check</p>
-              <p class="text-[10px] text-rose-600/90 mt-1 leading-snug">
-                放行 Google 探針 (130.211.0.0/22, 35.191.0.0/16)
-              </p>
-            </div>
-            <div class="text-[10px] text-rose-600 font-semibold text-right mt-2 flex items-center justify-end gap-0.5">
-              <span>查看規則</span><span>›</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
+    <!-- 頂部置中大標題 -->
+    <div class="text-center mb-6 sm:mb-8 w-full">
+      <h1 class="text-lg sm:text-2xl font-extrabold text-slate-900 tracking-wide">
+        GCP Layer 7 全域 HTTP 負載平衡器架構
+      </h1>
+      <div class="h-1 w-24 sm:w-32 bg-[#89b4fa] mx-auto mt-2 rounded-full"></div>
+      <p class="text-xs text-slate-500 mt-2">點擊架構節點可查看詳細說明與實作指令</p>
     </div>
 
-    <!-- 頁面底部架構核心觀念說明 -->
-    <div class="mt-6 max-w-2xl w-full text-center">
-      <div class="inline-flex items-center gap-2 px-5 py-2.5 rounded-full bg-white border border-google-blueBorder text-xs sm:text-sm font-medium text-slate-700 shadow-xs">
-        <span class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[#89b4fa]/30 text-slate-800 text-xs font-bold">💡</span>
-        <span>資料流向是「<strong class="text-[#598ee0] font-semibold">由外而內</strong>」，但基礎設施建構步驟是「<strong class="text-slate-900 font-semibold">由後往前、由內而外</strong>」。</span>
+    <!-- 流程節點：Client -->
+    <div class="flex flex-col items-center w-full">
+      <div class="px-4 py-2 sm:px-5 sm:py-2.5 bg-slate-100 border border-slate-300 rounded-xl shadow-sm flex items-center gap-2 text-slate-700 text-xs sm:text-sm font-semibold">
+        <svg class="w-4 h-4 text-slate-500 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path>
+        </svg>
+        <span>Client (外部使用者請求)</span>
+      </div>
+
+      <!-- 箭頭 -->
+      <div class="my-1.5 sm:my-2 flex flex-col items-center">
+        <div class="w-0.5 h-4 sm:h-6 bg-slate-300"></div>
+        <svg class="w-3.5 h-3.5 text-slate-400 -mt-1" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path></svg>
       </div>
     </div>
 
-  </main>
+    <!-- Step 4 & 10: Forwarding Rule + Global IP -->
+    <div onclick="openModal('forwardingRule')" class="w-full max-w-md bg-white border border-[#89b4fa] hover:border-[#6a9ff2] rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md cursor-pointer transition flex items-center justify-between gap-3 group">
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-[#89b4fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"></path></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">全域轉送規則 & Anycast IP</div>
+          <div class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition truncate">Forwarding Rule (http-content-rule)</div>
+          <div class="text-[10px] sm:text-xs text-blue-600 font-mono truncate">IP: lb-ipv4-1 (Port 80)</div>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 sm:py-1 rounded bg-[#89b4fa] text-white text-[10px] sm:text-xs font-bold flex-shrink-0">Step 4 & 10</span>
+    </div>
 
-  <div id="modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-[2px] hidden">
-    <div class="bg-white rounded-2xl shadow-xl border border-slate-200 max-w-xl w-full overflow-hidden modal-show flex flex-col max-h-[90vh]">
+    <!-- 箭頭 -->
+    <div class="my-1.5 sm:my-2 flex flex-col items-center">
+      <div class="w-0.5 h-4 sm:h-6 bg-slate-300"></div>
+      <svg class="w-3.5 h-3.5 text-slate-400 -mt-1" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path></svg>
+    </div>
+
+    <!-- Step 9: Target HTTP Proxy -->
+    <div onclick="openModal('targetProxy')" class="w-full max-w-md bg-white border border-[#89b4fa] hover:border-[#6a9ff2] rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md cursor-pointer transition flex items-center justify-between gap-3 group">
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-[#89b4fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">目標 HTTP 代理</div>
+          <div class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition truncate">Target HTTP Proxy (http-lb-proxy)</div>
+          <div class="text-[10px] sm:text-xs text-slate-500 truncate">終止連線並交由 URL Map 解構</div>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 sm:py-1 rounded bg-[#89b4fa] text-white text-[10px] sm:text-xs font-bold flex-shrink-0">Step 9</span>
+    </div>
+
+    <!-- 箭頭 -->
+    <div class="my-1.5 sm:my-2 flex flex-col items-center">
+      <div class="w-0.5 h-4 sm:h-6 bg-slate-300"></div>
+      <svg class="w-3.5 h-3.5 text-slate-400 -mt-1" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path></svg>
+    </div>
+
+    <!-- Step 8: URL Map -->
+    <div onclick="openModal('urlMap')" class="w-full max-w-md bg-white border border-[#89b4fa] hover:border-[#6a9ff2] rounded-xl p-3 sm:p-4 shadow-sm hover:shadow-md cursor-pointer transition flex items-center justify-between gap-3 group">
+      <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
+          <svg class="w-5 h-5 text-[#89b4fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>
+        </div>
+        <div class="min-w-0">
+          <div class="text-[11px] sm:text-xs text-slate-500 font-medium truncate">第 7 層路由靈魂</div>
+          <div class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition truncate">URL Map (web-map-http)</div>
+          <div class="text-[10px] sm:text-xs text-slate-500 truncate">根據 Path / Host 轉發流量</div>
+        </div>
+      </div>
+      <span class="px-2 py-0.5 sm:py-1 rounded bg-[#89b4fa] text-white text-[10px] sm:text-xs font-bold flex-shrink-0">Step 8</span>
+    </div>
+
+    <!-- 箭頭 -->
+    <div class="my-1.5 sm:my-2 flex flex-col items-center">
+      <div class="w-0.5 h-4 sm:h-6 bg-slate-300"></div>
+      <svg class="w-3.5 h-3.5 text-slate-400 -mt-1" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path></svg>
+    </div>
+
+    <!-- Step 6 & 7: Backend Service + Step 5 Health Check 容器 -->
+    <div class="w-full max-w-xl p-3.5 sm:p-5 bg-slate-50/90 border border-slate-200 rounded-2xl flex flex-col gap-3">
       
-      <!-- Modal Header -->
-      <div class="px-6 py-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-        <div class="flex items-center space-x-2.5">
-          <div id="modal-icon-container" class="w-7 h-7 rounded-lg bg-google-blueLight border border-google-blueBorder flex items-center justify-center text-slate-700">
-            <span id="modal-icon"></span>
+      <!-- Backend Service -->
+      <div onclick="openModal('backendService')" class="w-full bg-white border border-[#89b4fa] hover:border-[#6a9ff2] rounded-xl p-3 sm:p-3.5 shadow-sm hover:shadow-md cursor-pointer transition flex items-center justify-between gap-3 group">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-blue-50 border border-blue-200 flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-[#89b4fa]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
           </div>
-          <span id="modal-step" class="px-2 py-0.5 rounded text-xs font-bold bg-[#89b4fa] text-white"></span>
-          <h3 id="modal-title" class="text-sm sm:text-base font-bold text-slate-900"></h3>
+          <div class="min-w-0">
+            <div class="text-[10px] sm:text-xs text-slate-500 font-medium truncate">核心路由中樞</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition truncate">Backend Service (web-backend-service)</div>
+          </div>
         </div>
-        <button onclick="closeModal()" class="w-7 h-7 rounded-full bg-slate-200/70 hover:bg-slate-200 text-slate-500 hover:text-slate-800 flex items-center justify-center text-xs transition">
-          ✕
-        </button>
+        <span class="px-2 py-0.5 rounded bg-[#89b4fa] text-white text-[10px] sm:text-xs font-bold flex-shrink-0">Step 6 & 7</span>
       </div>
 
-      <!-- Modal Body (由上至下依序：文字說明 ➔ 程式碼(可展開) ➔ 為什麼要做這件事) -->
-      <div class="p-6 overflow-y-auto space-y-4 flex-1">
-        
-        <!-- 1. 文字說明 (最上方) -->
-        <div class="space-y-1">
-          <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#89b4fa]"></span>
-            文字說明與運作機制
+      <!-- Step 5: Health Check (綠色標示) -->
+      <div onclick="openModal('healthCheck')" class="w-full bg-emerald-50/70 border border-emerald-300 hover:border-emerald-500 rounded-xl p-3 sm:p-3.5 shadow-sm hover:shadow-md cursor-pointer transition flex items-center justify-between gap-2 group">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-emerald-100 border border-emerald-300 flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
           </div>
-          <p id="modal-desc" class="text-sm text-slate-700 leading-relaxed bg-slate-50 p-3.5 rounded-xl border border-slate-100"></p>
+          <div class="min-w-0">
+            <div class="text-[10px] sm:text-xs text-emerald-700 font-semibold truncate">狀態健康檢查機制</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-800 truncate">HTTP Health Check (http-basic-check)</div>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-emerald-600 text-white text-[10px] sm:text-xs font-bold flex-shrink-0">Step 5</span>
+      </div>
+
+    </div>
+
+    <!-- 箭頭 -->
+    <div class="my-1.5 sm:my-2 flex flex-col items-center">
+      <div class="w-0.5 h-4 sm:h-6 bg-slate-300"></div>
+      <svg class="w-3.5 h-3.5 text-slate-400 -mt-1" fill="currentColor" viewBox="0 0 20 20"><path d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"></path></svg>
+    </div>
+
+    <!-- 後端資源層 (Zone: us-east1-c) -->
+    <div class="w-full max-w-xl p-3.5 sm:p-5 bg-slate-100/90 border border-slate-300 rounded-2xl flex flex-col gap-3">
+      
+      <!-- 標題列 -->
+      <div class="flex items-center justify-between px-1">
+        <span class="text-xs font-bold text-slate-600">Region: us-east1 / Zone: us-east1-c</span>
+        <span class="text-[10px] sm:text-xs font-mono text-slate-400">VPC: default</span>
+      </div>
+
+      <!-- Step 2 & 1: MIG (灰色標示) -->
+      <div onclick="openModal('mig')" class="w-full bg-white border border-slate-400 hover:border-slate-600 rounded-xl p-3 sm:p-3.5 shadow-sm hover:shadow-md cursor-pointer transition flex items-center justify-between gap-3 group">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-slate-100 border border-slate-300 flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-[10px] sm:text-xs text-slate-500 font-medium truncate">受管執行個體群組 & 範本</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-900 group-hover:text-blue-600 transition truncate">MIG (lb-backend-group)</div>
+            <div class="text-[10px] sm:text-xs text-slate-500 truncate">Template: lb-backend-template (size=2)</div>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-slate-600 text-white text-[10px] sm:text-xs font-bold flex-shrink-0">Step 2 & 1</span>
+      </div>
+
+      <!-- VM 實體清單 (響應式垂直 / 橫向) -->
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+        <div onclick="openModal('vmInstance1')" class="bg-white/80 border border-slate-200 hover:border-slate-400 rounded-xl p-2.5 sm:p-3 shadow-sm cursor-pointer transition flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-600 flex-shrink-0">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
+            </div>
+            <div>
+              <div class="text-xs font-bold text-slate-800">VM Instance 1</div>
+              <div class="text-[10px] text-slate-400">Apache · Debian 12</div>
+            </div>
+          </div>
+          <span class="text-[10px] text-emerald-600 font-mono font-semibold">Port 80</span>
         </div>
 
-        <!-- 2. 程式碼區塊 (可折疊/展開，還原完整程式碼) -->
-        <div class="space-y-1.5" id="code-section">
-          <div class="flex items-center justify-between">
-            <div class="text-xs font-semibold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
-              <span class="w-1.5 h-1.5 rounded-full bg-slate-600"></span>
-              Cloud Shell 程式碼指令
+        <div onclick="openModal('vmInstance2')" class="bg-white/80 border border-slate-200 hover:border-slate-400 rounded-xl p-2.5 sm:p-3 shadow-sm cursor-pointer transition flex items-center justify-between">
+          <div class="flex items-center gap-2">
+            <div class="w-6 h-6 rounded bg-slate-100 border border-slate-300 flex items-center justify-center text-slate-600 flex-shrink-0">
+              <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>
             </div>
-            <button id="toggle-code-btn" onclick="toggleCode()" class="text-xs font-medium text-[#598ee0] hover:text-[#427cd4] px-2 py-0.5 rounded transition flex items-center gap-1">
-              <span id="toggle-icon">▶</span>
-              <span id="toggle-text">展開程式碼</span>
+            <div>
+              <div class="text-xs font-bold text-slate-800">VM Instance 2</div>
+              <div class="text-[10px] text-slate-400">Apache · Debian 12</div>
+            </div>
+          </div>
+          <span class="text-[10px] text-emerald-600 font-mono font-semibold">Port 80</span>
+        </div>
+      </div>
+
+      <!-- Step 3: Firewall (紅色標示) -->
+      <div onclick="openModal('firewall')" class="w-full bg-rose-50/70 border border-rose-300 hover:border-rose-500 rounded-xl p-3 sm:p-3.5 shadow-sm hover:shadow-md cursor-pointer transition flex items-center justify-between gap-2 group">
+        <div class="flex items-center gap-2.5 sm:gap-3 min-w-0">
+          <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-lg bg-rose-100 border border-rose-300 flex items-center justify-center flex-shrink-0">
+            <svg class="w-4 h-4 sm:w-5 sm:h-5 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"></path></svg>
+          </div>
+          <div class="min-w-0">
+            <div class="text-[10px] sm:text-xs text-rose-700 font-semibold truncate">探針安全通道 (Firewall)</div>
+            <div class="text-xs sm:text-sm font-bold text-slate-800 truncate">Firewall (fw-allow-health-check)</div>
+            <div class="text-[10px] sm:text-xs text-slate-500 truncate">放行 130.211.0.0/22 & 35.191.0.0/16</div>
+          </div>
+        </div>
+        <span class="px-2 py-0.5 rounded bg-rose-600 text-white text-[10px] sm:text-xs font-bold flex-shrink-0">Step 3</span>
+      </div>
+
+    </div>
+
+    <!-- 底部核心架構理念說明 -->
+    <div class="mt-6 sm:mt-8 w-full bg-blue-50/70 border border-blue-200/80 rounded-xl p-3 sm:p-4 text-center">
+      <p class="text-xs sm:text-sm font-semibold text-slate-700 leading-relaxed">
+        💡 資料流向是「由外而內」，但基礎設施建構步驟是「由後往前、由內而外」。
+      </p>
+    </div>
+
+  </div>
+
+  <!-- 彈出視窗 (Modal) -->
+  <div id="modalBackdrop" class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4 transition-opacity duration-200">
+    <div class="bg-white w-full sm:max-w-xl rounded-t-2xl sm:rounded-2xl p-5 sm:p-6 shadow-2xl border border-slate-200 max-h-[85vh] flex flex-col justify-between overflow-hidden">
+      
+      <!-- 頂部標題與關閉按鈕 -->
+      <div class="flex items-center justify-between border-b border-slate-100 pb-3 mb-4">
+        <div class="flex items-center gap-2">
+          <span id="modalStep" class="px-2 py-0.5 rounded text-white text-xs font-bold"></span>
+          <h3 id="modalTitle" class="text-sm sm:text-base font-bold text-slate-900 truncate"></h3>
+        </div>
+        <button onclick="closeModal()" class="w-8 h-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-500 transition">✕</button>
+      </div>
+
+      <!-- 滾動內容區 -->
+      <div class="overflow-y-auto pr-1 space-y-4 flex-1">
+        <!-- 說明 -->
+        <div>
+          <div class="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1">📝 操作說明與排錯提示</div>
+          <p id="modalDesc" class="text-xs sm:text-sm text-slate-600 leading-relaxed"></p>
+        </div>
+
+        <!-- 程式碼 (可展開) -->
+        <div class="border border-slate-200 rounded-xl overflow-hidden">
+          <button onclick="toggleCode()" class="w-full bg-slate-50 px-3.5 py-2.5 flex items-center justify-between text-xs font-semibold text-slate-700 hover:bg-slate-100 transition">
+            <span class="flex items-center gap-1.5">
+              <svg class="w-3.5 h-3.5 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"></path></svg>
+              Cloud Shell 指令
+            </span>
+            <span id="codeToggleText" class="text-blue-500 text-[11px]">展開代碼 ▼</span>
+          </button>
+          <div id="codeContainer" class="hidden bg-slate-900 p-3 relative">
+            <button onclick="copyCode()" class="absolute top-2 right-2 px-2 py-1 bg-slate-800 hover:bg-slate-700 text-slate-200 text-[10px] rounded transition border border-slate-700">
+              <span id="copyFeedback">複製指令</span>
             </button>
-          </div>
-
-          <!-- 折疊容器：預設隱藏 -->
-          <div id="code-container" class="hidden space-y-2">
-            <div class="flex items-center justify-end">
-              <button id="copy-btn" onclick="copyCode()" class="text-xs font-medium bg-slate-100 hover:bg-slate-200 text-slate-700 px-2.5 py-1 rounded-md transition border border-slate-200">
-                <span id="copy-status">📋 複製指令</span>
-              </button>
-            </div>
-            <div class="bg-slate-900 rounded-xl p-3.5 border border-slate-800 overflow-x-auto">
-              <pre class="text-xs text-blue-200 font-mono leading-relaxed" id="modal-code"></pre>
-            </div>
+            <pre><code id="modalCode" class="text-[11px] font-mono text-blue-200 block pt-4"></code></pre>
           </div>
         </div>
 
-        <!-- 3. 為甚麼要做這件事 (最下方) -->
-        <div class="space-y-1 pt-1">
-          <div class="text-xs font-semibold text-[#598ee0] uppercase tracking-wider flex items-center gap-1.5">
-            <span class="w-1.5 h-1.5 rounded-full bg-[#89b4fa]"></span>
-            為什麼要做這件事？
-          </div>
-          <div class="bg-[#89b4fa]/15 border border-[#89b4fa]/40 rounded-xl p-3.5">
-            <p id="modal-why" class="text-sm text-slate-700 leading-relaxed"></p>
-          </div>
+        <!-- 為什麼要做 -->
+        <div class="bg-blue-50 border-l-4 border-[#89b4fa] p-3 rounded-r-xl">
+          <div class="text-[11px] font-bold text-blue-700 mb-1">💡 為什麼要做這個步驟？（架構目的）</div>
+          <p id="modalWhy" class="text-xs sm:text-sm text-slate-700 leading-relaxed"></p>
         </div>
-
-      </div>
-
-      <!-- Modal Footer -->
-      <div class="px-6 py-3 bg-slate-50/80 border-t border-slate-100 flex justify-end">
-        <button onclick="closeModal()" class="px-4 py-1.5 rounded-lg text-xs font-semibold bg-slate-200 hover:bg-slate-300 text-slate-700 transition">
-          關閉
-        </button>
       </div>
 
     </div>
   </div>
 
   <script>
-    // 完整節點資料庫（包含所有步驟）
-    const nodeDetails = {
-      client: {
-        step: "Client",
-        title: "外部客戶端請求 (External Client Traffic)",
-        desc: "網際網路上的使用者透過瀏覽器發起 HTTP 請求。在全域負載平衡架構中，所有外部請求皆透過 Google Anycast IP 進入就近的 Google 邊緣 PoP 節點，享有極低延遲與強大防護。",
-        code: `# 驗證指令：透過 curl 測試取得後端回應
-curl http://[YOUR_LB_IP]`,
-        why: "作為架構的資料流起點，展示使用者如何透過單一全域 Anycast IP 存取部署在 Google Cloud 上的應用服務，而無需直接面對後端實體伺服器。"
-      },
-      forwarding_rule: {
+    const dataSet = {
+      forwardingRule: {
         step: "Step 4 & 10",
-        title: "全域轉送規則與靜態外部 IP",
-        desc: "【步驟 4】申請保留名為 lb-ipv4-1 的 Global IPv4 靜態地址；【步驟 10】建立轉送規則 http-content-rule，負責在全域前端監聽 TCP Port 80 流量，並將請求無縫轉發給目標 HTTP 代理（http-lb-proxy）。",
-        code: `# 步驟 4：保留全域靜態外部 IP
+        badgeBg: "bg-[#89b4fa]",
+        title: "保留全域靜態外部 IP 與建立轉送規則",
+        desc: "申請名為 lb-ipv4-1 的 Global 靜態外部 IPv4 位址，並建立名為 http-content-rule 的轉送規則，將對外監聽 Port 80 與 Target Proxy 綁定。",
+        why: "為負載平衡器提供一個全球固定的 Anycast IPv4 入口地址。使用者無論從全球何處連線，皆透過同一個 IP 就近進入 Google 骨幹網路。",
+        code: `# Step 4: 保留全域靜態外部 IP
 gcloud compute addresses create lb-ipv4-1 \\
   --ip-version=IPV4 \\
   --global
 
-# 步驟 10：建立全域轉送規則
+# Step 10: 建立全域轉送規則
 gcloud compute forwarding-rules create http-content-rule \\
   --address=lb-ipv4-1 \\
   --global \\
   --target-http-proxy=http-lb-proxy \\
-  --ports=80`,
-        why: "轉送規則是負載平衡器對外的「門面入口」。固定全域 IP 確保域名 DNS 解析穩定，並負責將外網連線串接至後續的 HTTP 代理處理流程。"
+  --ports=80`
       },
-      target_proxy: {
+      targetProxy: {
         step: "Step 9",
-        title: "目標 HTTP 代理 (Target HTTP Proxy)",
-        desc: "建立名為 http-lb-proxy 的目標代理。它負責接收轉送規則傳入的連線請求、終止客戶端的 HTTP 連線，並依據綁定的網址對應表（web-map-http）判斷路由分發走向。",
-        code: `# 步驟 9：建立 Target HTTP Proxy
-gcloud compute target-http-proxies create http-lb-proxy \\
-  --url-map=web-map-http`,
-        why: "Target Proxy 是協議終止層。在此層完成 HTTP 協議解析與後續路由參照，若未來擴充為 HTTPS，亦是在此層掛載 SSL 憑證進行解密。"
+        badgeBg: "bg-[#89b4fa]",
+        title: "建立 Target HTTP Proxy",
+        desc: "建立目標 HTTP 代理 http-lb-proxy，並與步驟 8 的網址對應表 web-map-http 綁定。",
+        why: "負責接收客戶端的連線請求、終止 HTTP 連線，並依照 URL Map 所定義的規則將請求交由後端處理。",
+        code: `gcloud compute target-http-proxies create http-lb-proxy \\
+  --url-map=web-map-http`
       },
-      url_map: {
+      urlMap: {
         step: "Step 8",
-        title: "網址對應表 (URL Map - 第 7 層核心)",
-        desc: "建立名為 web-map-http 的網址對應表。設定路由規則將所有傳入流量預設轉送至後端服務 web-backend-service。\n\n⚠️ 排錯提醒：若執行時終端機出現 is not ready 提示，代表後端服務尚未同步完成，稍候 15 秒重新執行即可。",
-        code: `# 步驟 8：建立網址對應表 (URL Map)
-gcloud compute url-maps create web-map-http \\
-  --default-service=web-backend-service`,
-        why: "URL Map 是 Layer 7 應用層負載平衡器的「大腦」。它具備進階 URL 比對與 Host 路由功能，可根據路徑（如 /api 或 /video）精準分流至不同後端服務。"
+        badgeBg: "bg-[#89b4fa]",
+        title: "建立網址對應表 (URL Map)",
+        desc: "建立 web-map-http。⚠️ 注意：若執行時出現 is not ready 錯誤，代表後端服務正在後台傳播生效，請等待約 15 秒後再次執行此行即可。",
+        why: "這是 Layer 7（應用層）負載平衡的核心靈魂。URL Map 可根據請求的 Hostname 或 URL Path 將流量路由至不同的後端服務，此處先配置將所有流量預設導向 web-backend-service。",
+        code: `gcloud compute url-maps create web-map-http \\
+  --default-service=web-backend-service`
       },
-      backend_service: {
+      backendService: {
         step: "Step 6 & 7",
-        title: "後端服務 (Backend Service) 設置與關聯",
-        desc: "【步驟 6】建立全域後端服務 web-backend-service 並綁定健康檢查；【步驟 7】將 us-east1-c 的受管群組 lb-backend-group 作為後端資源掛載加入。",
-        code: `# 步驟 6：建立後端服務
+        badgeBg: "bg-[#89b4fa]",
+        title: "建立後端服務並加入 MIG",
+        desc: "建立名為 web-backend-service 的全域 HTTP 後端服務，綁定步驟 5 的健康檢查，並將步驟 2 建立的 lb-backend-group 綁定至該後端服務（區域 us-east1-c）。",
+        why: "Backend Service 是連接負載平衡前端與後端 VM 的核心中樞。它定義了通訊協定、綁定健康檢查，並設定流量分配政策與將實體運算節點註冊進集區。",
+        code: `# Step 6: 建立後端服務
 gcloud compute backend-services create web-backend-service \\
   --protocol=HTTP \\
   --port-name=http \\
   --health-checks=http-basic-check \\
   --global
 
-# 步驟 7：將 Instance Group 加入後端服務
+# Step 7: 將 MIG 群組加入後端服務
 gcloud compute backend-services add-backend web-backend-service \\
   --instance-group=lb-backend-group \\
   --instance-group-zone=us-east1-c \\
-  --global`,
-        why: "後端服務是前端路由與後端運算資源間的核心橋樑。它負責流量平衡演算法、會話保持（Session Affinity）設定，並整合健康狀態以確保流量只送達正常節點。"
+  --global`
       },
-      health_check: {
+      healthCheck: {
         step: "Step 5",
-        title: "HTTP 健康狀態檢查 (Health Check)",
-        desc: "建立名為 http-basic-check 的探測機制。負載平衡器探針會定期針對後端虛擬機器的 TCP Port 80 發出 HTTP GET 探測，確認服務是否可正常回應。",
-        code: `# 步驟 5：建立 HTTP 健康狀態檢查
-gcloud compute health-checks create http http-basic-check \\
-  --port=80`,
-        why: "確保高可用性與容錯移轉。一旦某台 VM 發生故障或無回應，健康檢查會立即將其標記為 Unhealthy，負載平衡器將自動剔除異常節點，防止用戶遭遇斷線。"
+        badgeBg: "bg-emerald-600",
+        title: "建立 HTTP 健康狀態檢查",
+        desc: "建立名為 http-basic-check 的 HTTP 探測機制，預設檢查 Port 80 的根路徑回應。",
+        why: "負載平衡器需持續探測後端 VM 是否正常運作，確保僅將流量轉發至健康（Healthy）的機器，避免請求落入失效節點。",
+        code: `gcloud compute health-checks create http http-basic-check \\
+  --port=80`
       },
       mig: {
-        step: "Step 2",
-        title: "受管執行個體群組 (Managed Instance Group, MIG)",
-        desc: "基於步驟 1 的範本，在 us-east1-c 區域建立初始配置為 2 台虛擬機器的受管群組 lb-backend-group。群組會自動依照範本產生規格相同的機器實體。",
-        code: `# 步驟 2：建立受管執行個體群組 (MIG)
-gcloud compute instance-groups managed create lb-backend-group \\
-  --template=lb-backend-template \\
-  --size=2 \\
-  --zone=us-east1-c`,
-        why: "提供具備彈性伸縮與自動自我修復（Auto-healing）的運算叢集。當實體 VM 異常時，MIG 會自動重啟或補足機器，構成高可用的負載池。"
-      },
-      vm1: {
-        step: "VM 實體",
-        title: "後端運算實體：VM 1",
-        desc: "由 MIG 自動生成的第一台虛擬機器。開機腳本會自動完成 Apache 安裝，並於 /var/www/html/index.html 寫入包含該機器 Hostname 的頁面，監聽 Port 80。",
-        code: `# 進入 VM 1 查看 Apache 服務狀態
-sudo systemctl status apache2
-
-# 檢查本機回應內容
-curl http://localhost/`,
-        why: "實際處理網頁請求的工作節點。當負載平衡器分流流量時，會在此節點與 VM 2 之間輪詢，於網頁上顯示不同的 Hostname 以驗證分流效果。"
-      },
-      vm2: {
-        step: "VM 實體",
-        title: "後端運算實體：VM 2",
-        desc: "由 MIG 自動生成的第二台虛擬機器。與 VM 1 具備完全相同的軟硬體設定與 Apache 網頁環境，同樣監聽 Port 80 並輸出專屬的 Hostname。",
-        code: `# 進入 VM 2 查看 Apache 服務狀態
-sudo systemctl status apache2
-
-# 檢查本機回應內容
-curl http://localhost/`,
-        why: "作為負載分流的第二個運算實體，與 VM 1 共同負擔請求，驗證多實體橫向擴展與流量均衡機制。"
-      },
-      template: {
-        step: "Step 1",
-        title: "執行個體範本 (Instance Template)",
-        desc: "定義後端機器的統一規格（e2-medium、Debian 12、allow-health-check 標籤），並嵌入自動化開機腳本安裝 Apache 與抓取 Google Metadata Hostname。",
-        code: `# 步驟 1：建立執行個體範本
+        step: "Step 2 & 1",
+        badgeBg: "bg-slate-600",
+        title: "建立執行個體範本與受管群組 (MIG)",
+        desc: "先使用 e2-medium 機型與 Debian 12 映像檔建立範本（含 Startup Script 與 allow-health-check 標籤），接著在 us-east1-c 建立初始數量為 2 台 VM 的受管群組 lb-backend-group。",
+        why: "定義標準化規格並提供具備自動修復與水平擴展能力的運算集區，確保後續擴展的 VM 具備一致的服務環境與高可用性。",
+        code: `# Step 1: 建立執行個體範本
 gcloud compute instance-templates create lb-backend-template \\
   --region=us-east1 \\
   --network=default \\
@@ -546,179 +381,106 @@ gcloud compute instance-templates create lb-backend-template \\
     a2enmod ssl
     vm_hostname="$(curl -H "Metadata-Flavor:Google" http://169.254.169.254/computeMetadata/v1/instance/name)"
     echo "Page served from: $vm_hostname" | tee /var/www/html/index.html
-    systemctl restart apache2'`,
-        why: "現代雲端「基礎設施即程式碼」標準做法。將機器規格與部署程序標準化為 Blueprint，確保 MIG 動態增減機器時能 100% 複製相同環境。"
+    systemctl restart apache2'
+
+# Step 2: 建立受管執行個體群組
+gcloud compute instance-groups managed create lb-backend-group \\
+  --template=lb-backend-template \\
+  --size=2 \\
+  --zone=us-east1-c`
       },
       firewall: {
         step: "Step 3",
-        title: "健康檢查專用防火牆規則 (Firewall Rule)",
-        desc: "建立名為 fw-allow-health-check 的防火牆規則。允許 Google 全球負載平衡器的專用探針 IP 網段（130.211.0.0/22 與 35.191.0.0/16）透過 TCP Port 80 存取後端。",
-        code: `# 步驟 3：建立健康檢查專用防火牆規則
-gcloud compute firewall-rules create fw-allow-health-check \\
+        badgeBg: "bg-rose-600",
+        title: "建立健康檢查專用防火牆規則",
+        desc: "允許來源網段 130.211.0.0/22 與 35.191.0.0/16 透過 TCP Port 80 存取帶有 allow-health-check 標籤的 VM。",
+        why: "Google Cloud 全域負載平衡器的健康檢查探針來自特定專用 IP 網段，若無防火牆規則允許該流量進入 VM，後端機器將會被判定為異常而無法接收流量。",
+        code: `gcloud compute firewall-rules create fw-allow-health-check \\
   --network=default \\
   --action=allow \\
   --direction=ingress \\
   --source-ranges=130.211.0.0/22,35.191.0.0/16 \\
   --target-tags=allow-health-check \\
-  --rules=tcp:80`,
-        why: "安全性與連通性保障。預設情況下 GCP VPC 阻擋未授權外網連線，必須顯式放行 Google 官方探測網段，否則健康檢查無法抵達機器，將造成誤判失聯。"
-      }
-    };
-
-    // 各節點主題圖示 (SVG)
-    const iconSVGs = {
-      client: `<svg class="w-4 h-4 text-[#6292e0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9"></path></svg>`,
-      forwarding_rule: `<svg class="w-4 h-4 text-[#6292e0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"></path></svg>`,
-      target_proxy: `<svg class="w-4 h-4 text-[#6292e0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>`,
-      url_map: `<svg class="w-4 h-4 text-[#6292e0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7"></path></svg>`,
-      backend_service: `<svg class="w-4 h-4 text-[#6292e0]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 12h14M5 12a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v4a2 2 0 01-2 2M5 12a2 2 0 00-2 2v4a2 2 0 002 2h14a2 2 0 002-2v-4a2 2 0 00-2-2m-2-4h.01M17 16h.01"></path></svg>`,
-      health_check: `<svg class="w-4 h-4 text-emerald-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>`,
-      mig: `<svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>`,
-      vm1: `<svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>`,
-      vm2: `<svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 17L9 20l-1 1h8l-1-1-.75-3M3 13h18M5 17h14a2 2 0 002-2V5a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z"></path></svg>`,
-      template: `<svg class="w-4 h-4 text-slate-700" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>`,
-      firewall: `<svg class="w-4 h-4 text-rose-600" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z"></path></svg>`
-    };
-
-    // 節點顏色主題配置
-    const nodeTheme = {
-      forwarding_rule: {
-        badgeBg: 'bg-[#89b4fa] text-white',
-        iconBg: 'bg-google-blueLight border-google-blueBorder'
+  --rules=tcp:80`
       },
-      target_proxy: {
-        badgeBg: 'bg-[#89b4fa] text-white',
-        iconBg: 'bg-google-blueLight border-google-blueBorder'
+      vmInstance1: {
+        step: "VM 實體",
+        badgeBg: "bg-slate-600",
+        title: "後端虛擬機 1 (Instance 1)",
+        desc: "由 MIG (lb-backend-group) 自動生成並管理的虛擬主機，運行 Apache 伺服器並監聽 Port 80。",
+        why: "承載負載平衡器分發過來的終端請求，並回傳帶有自身 Hostname 的網頁資訊。",
+        code: `# 查看該機器詳細資訊
+gcloud compute instances list --filter="zone:us-east1-c"`
       },
-      url_map: {
-        badgeBg: 'bg-[#89b4fa] text-white',
-        iconBg: 'bg-google-blueLight border-google-blueBorder'
-      },
-      backend_service: {
-        badgeBg: 'bg-[#89b4fa] text-white',
-        iconBg: 'bg-google-blueLight border-google-blueBorder'
-      },
-      health_check: {
-        badgeBg: 'bg-emerald-600 text-white',
-        iconBg: 'bg-emerald-100 border-emerald-200'
-      },
-      firewall: {
-        badgeBg: 'bg-rose-600 text-white',
-        iconBg: 'bg-rose-100 border-rose-200'
-      },
-      mig: {
-        badgeBg: 'bg-slate-700 text-white',
-        iconBg: 'bg-slate-200 border-slate-300'
-      },
-      template: {
-        badgeBg: 'bg-slate-700 text-white',
-        iconBg: 'bg-slate-200 border-slate-300'
-      },
-      vm1: {
-        badgeBg: 'bg-slate-700 text-white',
-        iconBg: 'bg-slate-200 border-slate-300'
-      },
-      vm2: {
-        badgeBg: 'bg-slate-700 text-white',
-        iconBg: 'bg-slate-200 border-slate-300'
+      vmInstance2: {
+        step: "VM 實體",
+        badgeBg: "bg-slate-600",
+        title: "後端虛擬機 2 (Instance 2)",
+        desc: "由 MIG 自動生成並維持健康狀態的第二台虛擬主機，分攤負載並提供冗餘高可用性。",
+        why: "與 Instance 1 共同分擔運算負載，在某台主機異常時確保整體 HTTP 服務不中斷。",
+        code: `# 查看該機器詳細資訊
+gcloud compute instances list --filter="zone:us-east1-c"`
       }
     };
 
     let activeKey = null;
-    let isCodeExpanded = false;
 
-    // 開啟節點詳情視窗
-    function openNode(key) {
-      const data = nodeDetails[key];
-      if (!data) return;
+    function openModal(key) {
       activeKey = key;
+      const data = dataSet[key];
+      const badge = document.getElementById('modalStep');
+      badge.textContent = data.step;
+      badge.className = `px-2 py-0.5 rounded text-white text-xs font-bold ${data.badgeBg}`;
 
-      const theme = nodeTheme[key] || {
-        badgeBg: 'bg-google-blue',
-        iconBg: 'bg-google-blueLight border-google-blueBorder'
-      };
+      document.getElementById('modalTitle').textContent = data.title;
+      document.getElementById('modalDesc').textContent = data.desc;
+      document.getElementById('modalWhy').textContent = data.why;
+      document.getElementById('modalCode').textContent = data.code;
 
-      const stepEl = document.getElementById('modal-step');
-      stepEl.textContent = data.step;
-      stepEl.className = `px-2 py-0.5 rounded text-xs font-bold text-white ${theme.badgeBg}`;
+      // 預設折疊代碼
+      document.getElementById('codeContainer').classList.add('hidden');
+      document.getElementById('codeToggleText').textContent = '展開代碼 ▼';
+      document.getElementById('copyFeedback').textContent = '複製指令';
 
-      const iconContainer = document.getElementById('modal-icon-container');
-      iconContainer.className = `w-7 h-7 rounded-lg border flex items-center justify-center ${theme.iconBg}`;
-
-      document.getElementById('modal-icon').innerHTML = iconSVGs[key] || '';
-      document.getElementById('modal-title').textContent = data.title;
-      document.getElementById('modal-desc').textContent = data.desc;
-      document.getElementById('modal-code').textContent = data.code;
-      document.getElementById('modal-why').textContent = data.why;
-
-      // 每次開啟時重置為折疊狀態，保持版面清爽
-      collapseCode();
-
-      document.getElementById('modal').classList.remove('hidden');
+      document.getElementById('modalBackdrop').classList.remove('hidden');
     }
 
     function closeModal() {
-      document.getElementById('modal').classList.add('hidden');
+      document.getElementById('modalBackdrop').classList.add('hidden');
     }
 
-    // 展開與收合程式碼功能
     function toggleCode() {
-      if (isCodeExpanded) {
-        collapseCode();
+      const container = document.getElementById('codeContainer');
+      const text = document.getElementById('codeToggleText');
+      if (container.classList.contains('hidden')) {
+        container.classList.remove('hidden');
+        text.textContent = '收合代碼 ▲';
       } else {
-        expandCode();
+        container.classList.add('hidden');
+        text.textContent = '展開代碼 ▼';
       }
     }
 
-    function expandCode() {
-      isCodeExpanded = true;
-      document.getElementById('code-container').classList.remove('hidden');
-      document.getElementById('toggle-icon').textContent = '▼';
-      document.getElementById('toggle-text').textContent = '收合程式碼';
-    }
-
-    function collapseCode() {
-      isCodeExpanded = false;
-      document.getElementById('code-container').classList.add('hidden');
-      document.getElementById('toggle-icon').textContent = '▶';
-      document.getElementById('toggle-text').textContent = '展開程式碼';
-    }
-
-    // 點擊背景遮罩關閉
-    document.getElementById('modal').addEventListener('click', (e) => {
-      if (e.target.id === 'modal') closeModal();
-    });
-
-    // ESC 鍵關閉
-    window.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') closeModal();
-    });
-
-    // 複製指令
     function copyCode() {
-      if (!activeKey || !nodeDetails[activeKey]) return;
-      const text = nodeDetails[activeKey].code;
-
-      const textarea = document.createElement('textarea');
-      textarea.value = text;
-      textarea.style.position = 'fixed';
-      textarea.style.opacity = '0';
-      document.body.appendChild(textarea);
-      textarea.select();
-
-      try {
-        document.execCommand('copy');
-        const statusEl = document.getElementById('copy-status');
-        statusEl.textContent = '✅ 已複製！';
+      if (!activeKey) return;
+      navigator.clipboard.writeText(dataSet[activeKey].code).then(() => {
+        const feedback = document.getElementById('copyFeedback');
+        feedback.textContent = '已複製！';
+        feedback.classList.add('text-emerald-400');
         setTimeout(() => {
-          statusEl.textContent = '📋 複製指令';
+          feedback.textContent = '複製指令';
+          feedback.classList.remove('text-emerald-400');
         }, 1500);
-      } catch (err) {
-        console.error(err);
-      } finally {
-        document.body.removeChild(textarea);
-      }
+      });
     }
+
+    // 點擊遮罩關閉
+    document.getElementById('modalBackdrop').addEventListener('click', (e) => {
+      if (e.target === document.getElementById('modalBackdrop')) closeModal();
+    });
+  </script>
+</body>
+</html>
   </script>
 </body>
 </html>
